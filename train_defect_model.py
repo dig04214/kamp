@@ -4,6 +4,7 @@ Decision Tree, Random Forest, AdaBoost, XGBoost, LightGBM, GradientBoosting 모�
 불균형 데이터 처리를 위한 SMOTE 적용
 """
 
+import warnings
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,7 +13,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
 from sklearn.metrics import (
     accuracy_score, 
     precision_score, 
@@ -24,11 +24,10 @@ from sklearn.metrics import (
     roc_curve
 )
 from imblearn.over_sampling import SMOTE
-from imblearn.combine import SMOTETomek
 import xgboost as xgb
 import lightgbm as lgb
 import joblib
-import warnings
+
 warnings.filterwarnings('ignore')
 
 # 한글 폰트 설정 (Windows)
@@ -48,7 +47,7 @@ def load_and_preprocess_data(file_path):
     print(f"\n데이터셋 크기: {df.shape}")
     print(f"컬럼 목록: {df.columns.tolist()}")
     
-    # date 컬럼 제거 (학습에 사용하지 않음)
+    # date 컬럼 제거 
     if 'date' in df.columns:
         df = df.drop('date', axis=1)
     
@@ -59,7 +58,7 @@ def load_and_preprocess_data(file_path):
     df = df.dropna()
     
     # passorfail 컬럼의 분포 확인
-    print(f"\n불량 분포:")
+    print("\n불량 분포:")
     print(df['passorfail'].value_counts())
     print(f"불량률: {df['passorfail'].sum() / len(df) * 100:.2f}%")
     
@@ -92,7 +91,17 @@ def prepare_train_test_data(df, test_size=0.3, random_state=42, use_smote=False)
         print("SMOTE 적용 중 (불균형 데이터 처리)...")
         print("=" * 50)
         smote = SMOTE(random_state=random_state)
-        X_train, y_train = smote.fit_resample(X_train, y_train)
+        resampled = smote.fit_resample(X_train, y_train)
+        X_train, y_train = resampled[0], resampled[1]
+        if not isinstance(X_train, pd.DataFrame):
+            X_train = pd.DataFrame(X_train, columns=X.columns)
+
+        # Ensure y_train is a 1-D Series
+        if not isinstance(y_train, pd.Series):
+            y_arr = np.asarray(y_train).ravel()
+            # use original target name if available
+            target_name = getattr(y, 'name', 'target')
+            y_train = pd.Series(y_arr, name=target_name)
         print(f"\nSMOTE 적용 후 학습 데이터 크기: {X_train.shape}")
         print(f"SMOTE 적용 후 불량 분포:\n{pd.Series(y_train).value_counts()}")
     
@@ -271,7 +280,7 @@ def evaluate_model(model, X_test, y_test, model_name):
     
     # Confusion Matrix
     cm = confusion_matrix(y_test, y_pred)
-    print(f"\nConfusion Matrix:")
+    print("\nConfusion Matrix:")
     print(cm)
     
     return {
@@ -364,7 +373,8 @@ def compare_models(results):
     # 성능 비교 그래프
     fig, axes = plt.subplots(2, 3, figsize=(20, 12))
     metrics = ['Accuracy', 'Precision', 'Recall', 'F1-Score', 'ROC-AUC']
-    colors = plt.cm.tab10(range(len(comparison_df)))
+    cmap = plt.cm.get_cmap('tab10')
+    colors = [cmap(i) for i in range(len(comparison_df))]
     
     for idx, metric in enumerate(metrics):
         ax = axes[idx // 3, idx % 3]
@@ -459,7 +469,7 @@ def main():
     df = load_and_preprocess_data('소성가공 압출공정 데이터셋.csv')
     
     # 2. 학습/테스트 데이터 분할 (SMOTE 적용 여부 선택 가능)
-    X_train, X_test, y_train, y_test = prepare_train_test_data(df, use_smote=False)
+    X_train, X_test, y_train, y_test = prepare_train_test_data(df, use_smote=True)
     
     # 3. 여러 모델 학습
     print("\n" + "=" * 50)

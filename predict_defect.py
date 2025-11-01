@@ -2,11 +2,11 @@
 학습된 모델을 사용한 불량 예측 스크립트
 """
 
+import argparse
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import joblib
-import argparse
-from pathlib import Path
 
 
 def load_model(model_path):
@@ -121,7 +121,7 @@ def print_prediction_summary(predictions, true_labels=None, probs=None):
     
     # 확률 분포 정보
     if probs is not None:
-        print(f"\n불량 확률 통계:")
+        print("\n불량 확률 통계:")
         print(f"  - 평균: {probs.mean():.4f}")
         print(f"  - 최대: {probs.max():.4f}")
         print(f"  - 최소: {probs.min():.4f}")
@@ -132,7 +132,7 @@ def print_prediction_summary(predictions, true_labels=None, probs=None):
         medium_risk = np.sum((probs >= 0.5) & (probs < 0.8))
         low_risk = np.sum(probs < 0.5)
         
-        print(f"\n위험도별 분포:")
+        print("\n위험도별 분포:")
         print(f"  - 매우 높음 (≥90%): {very_high_risk}개 ({very_high_risk/total*100:.2f}%)")
         print(f"  - 높음 (80~90%):   {high_risk}개 ({high_risk/total*100:.2f}%)")
         print(f"  - 중간 (50~80%):   {medium_risk}개 ({medium_risk/total*100:.2f}%)")
@@ -295,8 +295,8 @@ def main():
   - logistic_regression_model.pkl
         """
     )
-    parser.add_argument('--model', type=str, default='random_forest_model.pkl',
-                        help='모델 파일 경로 (기본값: random_forest_model.pkl)')
+    parser.add_argument('--model', type=str, default='xgboost_model.pkl',
+                        help='모델 파일 경로 (기본값: xgboost_model.pkl)')
     parser.add_argument('--data', type=str, default='소성가공 압출공정 데이터셋.csv',
                         help='예측할 데이터 파일 경로')
     parser.add_argument('--output', type=str, default='predictions.csv',
@@ -353,7 +353,7 @@ def main():
         high_risk_count = np.sum(probs >= args.high_risk_threshold)
         if high_risk_count > 0:
             print(f"\n⚠️  총 {high_risk_count}개의 고위험 샘플이 발견되었습니다!")
-            print(f"   위 상세 정보 및 'high_risk_samples.csv' 파일을 확인하세요.")
+            print("   위 상세 정보 및 'high_risk_samples.csv' 파일을 확인하세요.")
     
     print("\n" + "=" * 50)
     print("예측 완료!")
