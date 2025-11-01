@@ -24,40 +24,71 @@ def load_data(file_path):
     print(f"데이터 로딩 중: {file_path}")
     df = pd.read_csv(file_path)
     print(f"데이터 형태: {df.shape}")
-    print(f"PassorFail 값 분포:\n{df['passorfail'].value_counts()}")
+    
+    # 결측치 정보 출력
+    missing_count = df.isnull().sum()
+    if missing_count.sum() > 0:
+        print(f"\n결측치 정보:")
+        missing_cols = missing_count[missing_count > 0]
+        for col, count in missing_cols.items():
+            print(f"  - {col}: {count}개 ({count/len(df)*100:.2f}%)")
+    else:
+        print("\n결측치 없음")
+    
+    print(f"\nPassorFail 값 분포:\n{df['passorfail'].value_counts()}")
     return df
 
 def plot_variable_trends_by_class(df, output_dir):
     """PassorFail 값에 따른 각 변수의 추이 시각화"""
-    # PassorFail 값별로 데이터 분리
-    pass_data = df[df['passorfail'] == 1]
-    fail_data = df[df['passorfail'] == 0]
+    # PassorFail 값별로 데이터 분리 및 인덱스 리셋
+    pass_data = df[df['passorfail'] == 0].reset_index(drop=True)
+    fail_data = df[df['passorfail'] == 1].reset_index(drop=True)
     
     # 숫자형 컬럼만 선택 (date와 passorfail 제외)
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     numeric_cols.remove('passorfail')
     
     print(f"\n시각화할 변수 개수: {len(numeric_cols)}")
+    print(f"Pass 샘플 수: {len(pass_data)}, Fail 샘플 수: {len(fail_data)}")
     
     # 각 변수에 대한 시계열 플롯
     for col in numeric_cols:
+        # 결측치 제거
+        pass_data_clean = pass_data[col].dropna()
+        fail_data_clean = fail_data[col].dropna()
+        
+        # 결측치 제거 후 데이터가 없으면 스킵
+        if len(pass_data_clean) == 0 and len(fail_data_clean) == 0:
+            print(f"⚠ {col} - 모든 데이터가 결측치입니다. 스킵합니다.")
+            continue
+        
         plt.figure(figsize=(15, 6))
         
-        # Pass(1) 데이터 플롯
+        # Pass(1) 데이터 플롯 - 0부터 시작하는 새로운 인덱스 사용
         plt.subplot(1, 2, 1)
-        plt.plot(pass_data.index[:], pass_data[col].iloc[:], 
-                alpha=0.7, linewidth=0.5, color='green')
-        plt.title(f'{col} - Pass (정상)', fontsize=12, fontweight='bold')
-        plt.xlabel('샘플 인덱스')
+        if len(pass_data_clean) > 0:
+            plt.plot(range(len(pass_data_clean)), pass_data_clean, 
+                    alpha=0.7, linewidth=0.5, color='green')
+            plt.title(f'{col} - Pass (정상) [N={len(pass_data_clean)}]', fontsize=12, fontweight='bold')
+        else:
+            plt.title(f'{col} - Pass (정상) [데이터 없음]', fontsize=12, fontweight='bold')
+            plt.text(0.5, 0.5, '결측치로 인해\n데이터가 없습니다', 
+                    ha='center', va='center', transform=plt.gca().transAxes, fontsize=14)
+        plt.xlabel('샘플 인덱스 (0부터 시작)')
         plt.ylabel(col)
         plt.grid(True, alpha=0.3)
         
-        # Fail(0) 데이터 플롯
+        # Fail(0) 데이터 플롯 - 0부터 시작하는 새로운 인덱스 사용
         plt.subplot(1, 2, 2)
-        plt.plot(fail_data.index[:], fail_data[col].iloc[:], 
-                alpha=0.7, linewidth=0.5, color='red')
-        plt.title(f'{col} - Fail (불량)', fontsize=12, fontweight='bold')
-        plt.xlabel('샘플 인덱스')
+        if len(fail_data_clean) > 0:
+            plt.plot(range(len(fail_data_clean)), fail_data_clean, 
+                    alpha=0.7, linewidth=0.5, color='red')
+            plt.title(f'{col} - Fail (불량) [N={len(fail_data_clean)}]', fontsize=12, fontweight='bold')
+        else:
+            plt.title(f'{col} - Fail (불량) [데이터 없음]', fontsize=12, fontweight='bold')
+            plt.text(0.5, 0.5, '결측치로 인해\n데이터가 없습니다', 
+                    ha='center', va='center', transform=plt.gca().transAxes, fontsize=14)
+        plt.xlabel('샘플 인덱스 (0부터 시작)')
         plt.ylabel(col)
         plt.grid(True, alpha=0.3)
         
@@ -78,14 +109,25 @@ def plot_variable_distribution_comparison(df, output_dir):
     print("\n분포 비교 그래프 생성 중...")
     
     for col in numeric_cols:
+        # 결측치 제거
+        pass_data_clean = df[df['passorfail'] == 1][col].dropna()
+        fail_data_clean = df[df['passorfail'] == 0][col].dropna()
+        
+        # 결측치 제거 후 데이터가 없으면 스킵
+        if len(pass_data_clean) == 0 and len(fail_data_clean) == 0:
+            print(f"⚠ {col} - 모든 데이터가 결측치입니다. 스킵합니다.")
+            continue
+        
         plt.figure(figsize=(12, 5))
         
         # 히스토그램 비교
         plt.subplot(1, 2, 1)
-        plt.hist(df[df['passorfail'] == 1][col], bins=50, alpha=0.6, 
-                label='Pass (정상)', color='green', density=True)
-        plt.hist(df[df['passorfail'] == 0][col], bins=50, alpha=0.6, 
-                label='Fail (불량)', color='red', density=True)
+        if len(pass_data_clean) > 0:
+            plt.hist(pass_data_clean, bins=50, alpha=0.6, 
+                    label='Pass (정상)', color='green', density=True)
+        if len(fail_data_clean) > 0:
+            plt.hist(fail_data_clean, bins=50, alpha=0.6, 
+                    label='Fail (불량)', color='red', density=True)
         plt.xlabel(col)
         plt.ylabel('밀도')
         plt.title(f'{col} - 분포 비교', fontweight='bold')
@@ -94,12 +136,20 @@ def plot_variable_distribution_comparison(df, output_dir):
         
         # 박스플롯 비교
         plt.subplot(1, 2, 2)
-        data_to_plot = [df[df['passorfail'] == 1][col], 
-                       df[df['passorfail'] == 0][col]]
-        bp = plt.boxplot(data_to_plot, patch_artist=True)
-        bp['boxes'][0].set_facecolor('green')
-        bp['boxes'][1].set_facecolor('red')
-        plt.xticks([1, 2], ['Pass (정상)', 'Fail (불량)'])
+        data_to_plot = []
+        labels = []
+        if len(pass_data_clean) > 0:
+            data_to_plot.append(pass_data_clean)
+            labels.append('Pass (정상)')
+        if len(fail_data_clean) > 0:
+            data_to_plot.append(fail_data_clean)
+            labels.append('Fail (불량)')
+        
+        if len(data_to_plot) > 0:
+            bp = plt.boxplot(data_to_plot, patch_artist=True)
+            for i, box in enumerate(bp['boxes']):
+                box.set_facecolor('green' if 'Pass' in labels[i] else 'red')
+            plt.xticks(range(1, len(labels) + 1), labels)
         plt.ylabel(col)
         plt.title(f'{col} - 박스플롯 비교', fontweight='bold')
         plt.grid(True, alpha=0.3, axis='y')
@@ -117,9 +167,9 @@ def plot_overall_comparison(df, output_dir):
     numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     numeric_cols.remove('passorfail')
     
-    # Pass와 Fail의 평균값 계산
-    pass_means = df[df['passorfail'] == 1][numeric_cols].mean()
-    fail_means = df[df['passorfail'] == 0][numeric_cols].mean()
+    # Pass와 Fail의 평균값 계산 (결측치 제거)
+    pass_means = df[df['passorfail'] == 1][numeric_cols].mean(skipna=True)
+    fail_means = df[df['passorfail'] == 0][numeric_cols].mean(skipna=True)
     
     # 차이가 큰 순서로 정렬
     mean_diff = abs(pass_means - fail_means)
@@ -186,7 +236,7 @@ def main():
     df = load_data('소성가공 압출공정 데이터셋.csv')
     
     # 출력 디렉토리 생성
-    output_dir = create_output_directory('trend_graphs')
+    output_dir = create_output_directory('trend_graphs_improved')
     print(f"\n그래프 저장 디렉토리: {output_dir.absolute()}")
     
     # 1. 전체 평균값 비교
