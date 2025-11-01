@@ -83,13 +83,15 @@ def prepare_train_test_data(df, test_size=0.3, random_state=42, use_smote=False)
     print(f"\n학습 데이터 크기: {X_train.shape}")
     print(f"테스트 데이터 크기: {X_test.shape}")
     print(f"\n학습 데이터 불량 분포:\n{y_train.value_counts()}")
-    print(f"테스트 데이터 불량 분포:\n{y_test.value_counts()}")
+    print(f"학습 데이터 불량률: {y_train.sum() / len(y_train) * 100:.2f}%")
+    print(f"\n테스트 데이터 불량 분포:\n{y_test.value_counts()}")
     
     # SMOTE 적용 (불균형 데이터 처리)
     if use_smote:
         print("\n" + "=" * 50)
         print("SMOTE 적용 중 (불균형 데이터 처리)...")
         print("=" * 50)
+        print(f"SMOTE 적용 전 불량률: {y_train.sum() / len(y_train) * 100:.2f}%")
         smote = SMOTE(random_state=random_state)
         resampled = smote.fit_resample(X_train, y_train)
         X_train, y_train = resampled[0], resampled[1]
@@ -104,6 +106,8 @@ def prepare_train_test_data(df, test_size=0.3, random_state=42, use_smote=False)
             y_train = pd.Series(y_arr, name=target_name)
         print(f"\nSMOTE 적용 후 학습 데이터 크기: {X_train.shape}")
         print(f"SMOTE 적용 후 불량 분포:\n{pd.Series(y_train).value_counts()}")
+        print(f"SMOTE 적용 후 불량률: {y_train.sum() / len(y_train) * 100:.2f}%")
+        print(f"✅ 불균형 해소: 정상 vs 불량 비율이 1:1로 균형을 이루었습니다!")
     
     return X_train, X_test, y_train, y_test
 
