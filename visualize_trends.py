@@ -110,8 +110,8 @@ def plot_variable_distribution_comparison(df, output_dir):
     
     for col in numeric_cols:
         # 결측치 제거
-        pass_data_clean = df[df['passorfail'] == 1][col].dropna()
-        fail_data_clean = df[df['passorfail'] == 0][col].dropna()
+        pass_data_clean = df[df['passorfail'] == 0][col].dropna()
+        fail_data_clean = df[df['passorfail'] == 1][col].dropna()
         
         # 결측치 제거 후 데이터가 없으면 스킵
         if len(pass_data_clean) == 0 and len(fail_data_clean) == 0:
