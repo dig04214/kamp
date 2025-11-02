@@ -23,7 +23,6 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve
 )
-from imblearn.over_sampling import SMOTE
 import xgboost as xgb
 import lightgbm as lgb
 import joblib
@@ -86,28 +85,6 @@ def prepare_train_test_data(df, test_size=0.3, random_state=42, use_smote=False)
     print(f"학습 데이터 불량률: {y_train.sum() / len(y_train) * 100:.2f}%")
     print(f"\n테스트 데이터 불량 분포:\n{y_test.value_counts()}")
     
-    # SMOTE 적용 (불균형 데이터 처리)
-    if use_smote:
-        print("\n" + "=" * 50)
-        print("SMOTE 적용 중 (불균형 데이터 처리)...")
-        print("=" * 50)
-        print(f"SMOTE 적용 전 불량률: {y_train.sum() / len(y_train) * 100:.2f}%")
-        smote = SMOTE(random_state=random_state)
-        resampled = smote.fit_resample(X_train, y_train)
-        X_train, y_train = resampled[0], resampled[1]
-        if not isinstance(X_train, pd.DataFrame):
-            X_train = pd.DataFrame(X_train, columns=X.columns)
-
-        # Ensure y_train is a 1-D Series
-        if not isinstance(y_train, pd.Series):
-            y_arr = np.asarray(y_train).ravel()
-            # use original target name if available
-            target_name = getattr(y, 'name', 'target')
-            y_train = pd.Series(y_arr, name=target_name)
-        print(f"\nSMOTE 적용 후 학습 데이터 크기: {X_train.shape}")
-        print(f"SMOTE 적용 후 불량 분포:\n{pd.Series(y_train).value_counts()}")
-        print(f"SMOTE 적용 후 불량률: {y_train.sum() / len(y_train) * 100:.2f}%")
-        print(f"✅ 불균형 해소: 정상 vs 불량 비율이 1:1로 균형을 이루었습니다!")
     
     return X_train, X_test, y_train, y_test
 
@@ -471,82 +448,88 @@ def main():
     
     # 1. 데이터 로드 및 전처리
     df = load_and_preprocess_data('소성가공 압출공정 데이터셋.csv')
+
+    describe = df.describe();
+
+    describe = describe.transpose();
+
+    print(describe.to_markdown());
     
-    # 2. 학습/테스트 데이터 분할 (SMOTE 적용 여부 선택 가능)
-    X_train, X_test, y_train, y_test = prepare_train_test_data(df, use_smote=True)
+    # # 2. 학습/테스트 데이터 분할 (SMOTE 적용 여부 선택 가능)
+    # X_train, X_test, y_train, y_test = prepare_train_test_data(df, use_smote=True)
     
-    # 3. 여러 모델 학습
-    print("\n" + "=" * 50)
-    print("다양한 알고리즘으로 모델 학습 중...")
-    print("=" * 50)
+    # # 3. 여러 모델 학습
+    # print("\n" + "=" * 50)
+    # print("다양한 알고리즘으로 모델 학습 중...")
+    # print("=" * 50)
     
-    models = {}
-    models['Decision Tree'] = train_decision_tree(X_train, y_train)
-    models['Random Forest'] = train_random_forest(X_train, y_train)
-    models['AdaBoost'] = train_adaboost(X_train, y_train)
-    models['XGBoost'] = train_xgboost(X_train, y_train)
-    models['LightGBM'] = train_lightgbm(X_train, y_train)
-    models['Gradient Boosting'] = train_gradient_boosting(X_train, y_train)
-    models['Logistic Regression'] = train_logistic_regression(X_train, y_train)
+    # models = {}
+    # models['Decision Tree'] = train_decision_tree(X_train, y_train)
+    # models['Random Forest'] = train_random_forest(X_train, y_train)
+    # models['AdaBoost'] = train_adaboost(X_train, y_train)
+    # models['XGBoost'] = train_xgboost(X_train, y_train)
+    # models['LightGBM'] = train_lightgbm(X_train, y_train)
+    # models['Gradient Boosting'] = train_gradient_boosting(X_train, y_train)
+    # models['Logistic Regression'] = train_logistic_regression(X_train, y_train)
     
-    # 4. 모델 평가
-    results = []
-    for name, model in models.items():
-        results.append(evaluate_model(model, X_test, y_test, name))
+    # # 4. 모델 평가
+    # results = []
+    # for name, model in models.items():
+    #     results.append(evaluate_model(model, X_test, y_test, name))
     
-    # 5. Feature Importance 분석 (트리 기반 모델만)
-    feature_names = X_train.columns
-    for name, model in models.items():
-        if name in ['Decision Tree', 'Random Forest', 'AdaBoost', 'XGBoost', 'LightGBM', 'Gradient Boosting']:
-            plot_feature_importance(model, feature_names, name)
+    # # 5. Feature Importance 분석 (트리 기반 모델만)
+    # feature_names = X_train.columns
+    # for name, model in models.items():
+    #     if name in ['Decision Tree', 'Random Forest', 'AdaBoost', 'XGBoost', 'LightGBM', 'Gradient Boosting']:
+    #         plot_feature_importance(model, feature_names, name)
     
-    # 6. Confusion Matrix 시각화
-    plot_confusion_matrices(results)
+    # # 6. Confusion Matrix 시각화
+    # plot_confusion_matrices(results)
     
-    # 7. ROC Curve 시각화
-    plot_roc_curves(results, y_test)
+    # # 7. ROC Curve 시각화
+    # plot_roc_curves(results, y_test)
     
-    # 8. 모델 성능 비교
-    comparison_df = compare_models(results)
+    # # 8. 모델 성능 비교
+    # comparison_df = compare_models(results)
     
-    # 9. 모델 저장
-    saved_files = save_models(models)
+    # # 9. 모델 저장
+    # saved_files = save_models(models)
     
-    # 10. 최종 결과 출력
-    print("\n" + "=" * 50)
-    print("학습 완료!")
-    print("=" * 50)
-    print("\n생성된 모델 파일:")
-    for file in saved_files:
-        print(f"  - {file}")
+    # # 10. 최종 결과 출력
+    # print("\n" + "=" * 50)
+    # print("학습 완료!")
+    # print("=" * 50)
+    # print("\n생성된 모델 파일:")
+    # for file in saved_files:
+    #     print(f"  - {file}")
     
-    print("\n생성된 시각화 파일:")
-    print("  - confusion_matrices.png")
-    print("  - model_comparison.png")
-    print("  - roc_curves.png")
-    for name in ['Decision Tree', 'Random Forest', 'AdaBoost', 'XGBoost', 'LightGBM', 'Gradient Boosting']:
-        print(f"  - {name}_feature_importance.png")
+    # print("\n생성된 시각화 파일:")
+    # print("  - confusion_matrices.png")
+    # print("  - model_comparison.png")
+    # print("  - roc_curves.png")
+    # for name in ['Decision Tree', 'Random Forest', 'AdaBoost', 'XGBoost', 'LightGBM', 'Gradient Boosting']:
+    #     print(f"  - {name}_feature_importance.png")
     
-    # 최고 성능 모델 출력 (F1-Score 기준)
-    best_idx = comparison_df['F1-Score'].idxmax()
-    best_model = comparison_df.loc[best_idx]
-    print(f"\n{'='*50}")
-    print("🏆 최고 성능 모델 (F1-Score 기준)")
-    print(f"{'='*50}")
-    print(f"모델: {best_model['Model']}")
-    print(f"  - Accuracy:  {best_model['Accuracy']:.4f}")
-    print(f"  - Precision: {best_model['Precision']:.4f}")
-    print(f"  - Recall:    {best_model['Recall']:.4f}")
-    print(f"  - F1-Score:  {best_model['F1-Score']:.4f}")
-    print(f"  - ROC-AUC:   {best_model['ROC-AUC']:.4f}")
+    # # 최고 성능 모델 출력 (F1-Score 기준)
+    # best_idx = comparison_df['F1-Score'].idxmax()
+    # best_model = comparison_df.loc[best_idx]
+    # print(f"\n{'='*50}")
+    # print("🏆 최고 성능 모델 (F1-Score 기준)")
+    # print(f"{'='*50}")
+    # print(f"모델: {best_model['Model']}")
+    # print(f"  - Accuracy:  {best_model['Accuracy']:.4f}")
+    # print(f"  - Precision: {best_model['Precision']:.4f}")
+    # print(f"  - Recall:    {best_model['Recall']:.4f}")
+    # print(f"  - F1-Score:  {best_model['F1-Score']:.4f}")
+    # print(f"  - ROC-AUC:   {best_model['ROC-AUC']:.4f}")
     
-    # Top 3 모델 출력
-    print(f"\n{'='*50}")
-    print("📊 Top 3 모델")
-    print(f"{'='*50}")
-    for i, (idx, row) in enumerate(comparison_df.head(3).iterrows(), 1):
-        print(f"\n{i}. {row['Model']}")
-        print(f"   F1-Score: {row['F1-Score']:.4f} | ROC-AUC: {row['ROC-AUC']:.4f}")
+    # # Top 3 모델 출력
+    # print(f"\n{'='*50}")
+    # print("📊 Top 3 모델")
+    # print(f"{'='*50}")
+    # for i, (idx, row) in enumerate(comparison_df.head(3).iterrows(), 1):
+    #     print(f"\n{i}. {row['Model']}")
+    #     print(f"   F1-Score: {row['F1-Score']:.4f} | ROC-AUC: {row['ROC-AUC']:.4f}")
 
 
 if __name__ == "__main__":
